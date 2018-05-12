@@ -1,13 +1,15 @@
-PROJECT(PackageTest)
-cmake_minimum_required(VERSION 2.8.12)
+project(test_package)
+cmake_minimum_required(VERSION 2.8.11)
+
+set(CMAKE_VERBOSE_MAKEFILE TRUE)
+
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 conan_basic_setup()
 
-add_definitions(-std=c++11)
-
 set(example_names
-  #sample
   insert
   update
   remove
@@ -16,7 +18,6 @@ set(example_names
 
 create_test_sourcelist(example_sources example_main.cpp ${example_names})
 add_executable(sqlpp11_examples ${example_sources})
-#target_link_libraries(sqlpp11_examples PRIVATE sqlpp11 sqlpp11_testing)
 
 foreach(example IN LISTS example_names)
   add_test(NAME sqlpp11.examples.${example}
