@@ -19,10 +19,11 @@ class sqlpp11Conan(ConanFile):
     generators = "cmake"
     _source_subfolder = "source_subfolder"
     _build_subfolder = "build_subfolder"
-    requires = "date/2.4@bincrafters/stable"
+    requires = "date/2.4.1@bincrafters/stable"
 
     def source(self):
-        tools.get("{0}/archive/{1}.tar.gz".format(self.homepage, self.version), sha256="107e2e8ae6c37ba8db2aa1c290708ac6b651f9597c5619af6e2b84bbc5ab74e1")
+        tools.get("{0}/archive/{1}.tar.gz".format(self.homepage, self.version),
+                  sha256="5f780bcaf81f38b260bb0d94f3b770f0c6e33a09601d76ab9cc905d3c0edcb88")
         extracted_dir = self.name + "-" + self.version
         os.rename(extracted_dir, self._source_subfolder)
 
