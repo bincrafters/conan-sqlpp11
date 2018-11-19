@@ -7,7 +7,7 @@ import os
 
 class sqlpp11Conan(ConanFile):
     name = "sqlpp11"
-    version = "0.54"
+    version = "0.57"
     description = "A type safe embedded domain specific language for SQL queries and results in C++."
     settings = "os", "compiler", "build_type", "arch"
     url = "https://github.com/bincrafters/conan-sqlpp11"
