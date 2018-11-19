@@ -26,13 +26,21 @@
 #ifndef SQLPP_MOCK_DB_H
 #define SQLPP_MOCK_DB_H
 
-#include <sstream>
 #include <iostream>
-#include <sqlpp11/schema.h>
+#include <sqlpp11/connection.h>
+#include <sqlpp11/transaction.h>
 #include <sqlpp11/data_types/no_value.h>
+#include <sqlpp11/schema.h>
 #include <sqlpp11/serialize.h>
 #include <sqlpp11/serializer_context.h>
-#include <sqlpp11/connection.h>
+#include <sstream>
+
+// an object to store internal Mock flags and values to validate in tests
+struct InternalMockData
+{
+  sqlpp::isolation_level _last_isolation_level;
+  sqlpp::isolation_level _default_isolation_level;
+};
 
 template <bool enforceNullResultTreatment>
 struct MockDbT : public sqlpp::connection
@@ -111,18 +119,17 @@ struct MockDbT : public sqlpp::connection
 
   // Directly executed statements start here
   template <typename T>
-  auto _run(const T& t, const std::true_type&) -> decltype(t._run(*this))
+  auto _run(const T& t, ::sqlpp::consistent_t) -> decltype(t._run(*this))
   {
     return t._run(*this);
   }
 
-  template <typename T>
-  auto _run(const T& t, const std::false_type&) -> void;
+  template <typename Check, typename T>
+  auto _run(const T& t, Check) -> Check;
 
   template <typename T>
   auto operator()(const T& t) -> decltype(this->_run(t, sqlpp::run_check_t<_serializer_context_t, T>{}))
   {
-    sqlpp::run_check_t<_serializer_context_t, T>::_();
     return _run(t, sqlpp::run_check_t<_serializer_context_t, T>{});
   }
 
@@ -182,18 +189,17 @@ struct MockDbT : public sqlpp::connection
   using _prepared_statement_t = std::nullptr_t;
 
   template <typename T>
-  auto _prepare(const T& t, const std::true_type&) -> decltype(t._prepare(*this))
+  auto _prepare(const T& t, ::sqlpp::consistent_t) -> decltype(t._prepare(*this))
   {
     return t._prepare(*this);
   }
 
-  template <typename T>
-  auto _prepare(const T& t, const std::false_type&) -> void;
+  template <typename Check, typename T>
+  auto _prepare(const T& t, Check) -> Check;
 
   template <typename T>
   auto prepare(const T& t) -> decltype(this->_prepare(t, sqlpp::prepare_check_t<_serializer_context_t, T>{}))
   {
-    sqlpp::prepare_check_t<_serializer_context_t, T>::_();
     return _prepare(t, sqlpp::prepare_check_t<_serializer_context_t, T>{});
   }
 
@@ -246,6 +252,252 @@ struct MockDbT : public sqlpp::connection
   {
     return {name};
   }
+
+  void start_transaction()
+  {
+    _mock_data._last_isolation_level = _mock_data._default_isolation_level;
+  }
+
+  void start_transaction(sqlpp::isolation_level level)
+  {
+    _mock_data._last_isolation_level = level;
+  }
+
+  void set_default_isolation_level(sqlpp::isolation_level level)
+  {
+    _mock_data._default_isolation_level = level;
+  }
+
+  sqlpp::isolation_level get_default_isolation_level()
+  {
+    return _mock_data._default_isolation_level;
+  }
+
+  void rollback_transaction(bool)
+  {
+  }
+
+  void commit_transaction()
+  {
+  }
+
+  void report_rollback_failure(std::string)
+  {
+  }
+
+  // temporary data store to verify the expected results were produced
+  InternalMockData _mock_data;
+};
+
+using MockDb = MockDbT<false>;
+using EnforceDb = MockDbT<true>;
+
+struct MockSizeDb : public sqlpp::connection
+{
+  using _traits = MockDb::_traits;
+
+  using _serializer_context_t = MockDb::_serializer_context_t;
+
+  using _interpreter_context_t = _serializer_context_t;
+
+  _serializer_context_t get_serializer_context()
+  {
+    return {};
+  }
+
+  template <typename T>
+  static _serializer_context_t& _serialize_interpretable(const T& t, _serializer_context_t& context)
+  {
+    sqlpp::serialize(t, context);
+    return context;
+  }
+
+  template <typename T>
+  static _serializer_context_t& _interpret_interpretable(const T& t, _interpreter_context_t& context)
+  {
+    sqlpp::serialize(t, context);
+    return context;
+  }
+
+  class result_t : public MockDb::result_t
+  {
+  public:
+    size_t size() const
+    {
+      return 0;
+    }
+  };
+
+  // Directly executed statements start here
+  template <typename T>
+  auto _run(const T& t, ::sqlpp::consistent_t) -> decltype(t._run(*this))
+  {
+    return t._run(*this);
+  }
+
+  template <typename Check, typename T>
+  auto _run(const T& t, Check) -> Check;
+
+  template <typename T>
+  auto operator()(const T& t) -> decltype(this->_run(t, sqlpp::run_check_t<_serializer_context_t, T>{}))
+  {
+    return _run(t, sqlpp::run_check_t<_serializer_context_t, T>{});
+  }
+
+  size_t execute(const std::string&)
+  {
+    return 0;
+  }
+
+  template <
+      typename Statement,
+      typename Enable = typename std::enable_if<not std::is_convertible<Statement, std::string>::value, void>::type>
+  size_t execute(const Statement& x)
+  {
+    _serializer_context_t context;
+    ::sqlpp::serialize(x, context);
+    std::cout << "Running execute call with\n" << context.str() << std::endl;
+    return execute(context.str());
+  }
+
+  template <typename Insert>
+  size_t insert(const Insert& x)
+  {
+    _serializer_context_t context;
+    ::sqlpp::serialize(x, context);
+    std::cout << "Running insert call with\n" << context.str() << std::endl;
+    return 0;
+  }
+
+  template <typename Update>
+  size_t update(const Update& x)
+  {
+    _serializer_context_t context;
+    ::sqlpp::serialize(x, context);
+    std::cout << "Running update call with\n" << context.str() << std::endl;
+    return 0;
+  }
+
+  template <typename Remove>
+  size_t remove(const Remove& x)
+  {
+    _serializer_context_t context;
+    ::sqlpp::serialize(x, context);
+    std::cout << "Running remove call with\n" << context.str() << std::endl;
+    return 0;
+  }
+
+  template <typename Select>
+  result_t select(const Select& x)
+  {
+    _serializer_context_t context;
+    ::sqlpp::serialize(x, context);
+    std::cout << "Running select call with\n" << context.str() << std::endl;
+    return {};
+  }
+
+  // Prepared statements start here
+  using _prepared_statement_t = std::nullptr_t;
+
+  template <typename T>
+  auto _prepare(const T& t, ::sqlpp::consistent_t) -> decltype(t._prepare(*this))
+  {
+    return t._prepare(*this);
+  }
+
+  template <typename Check, typename T>
+  auto _prepare(const T& t, Check) -> Check;
+
+  template <typename T>
+  auto prepare(const T& t) -> decltype(this->_prepare(t, sqlpp::prepare_check_t<_serializer_context_t, T>{}))
+  {
+    return _prepare(t, sqlpp::prepare_check_t<_serializer_context_t, T>{});
+  }
+
+  template <typename Statement>
+  _prepared_statement_t prepare_execute(Statement& x)
+  {
+    _serializer_context_t context;
+    ::sqlpp::serialize(x, context);
+    std::cout << "Running prepare execute call with\n" << context.str() << std::endl;
+    return nullptr;
+  }
+
+  template <typename Insert>
+  _prepared_statement_t prepare_insert(Insert& x)
+  {
+    _serializer_context_t context;
+    ::sqlpp::serialize(x, context);
+    std::cout << "Running prepare insert call with\n" << context.str() << std::endl;
+    return nullptr;
+  }
+
+  template <typename PreparedExecute>
+  size_t run_prepared_execute(const PreparedExecute&)
+  {
+    return 0;
+  }
+
+  template <typename PreparedInsert>
+  size_t run_prepared_insert(const PreparedInsert&)
+  {
+    return 0;
+  }
+
+  template <typename Select>
+  _prepared_statement_t prepare_select(Select& x)
+  {
+    _serializer_context_t context;
+    ::sqlpp::serialize(x, context);
+    std::cout << "Running prepare select call with\n" << context.str() << std::endl;
+    return nullptr;
+  }
+
+  template <typename PreparedSelect>
+  result_t run_prepared_select(PreparedSelect&)
+  {
+    return {};
+  }
+
+  auto attach(std::string name) -> ::sqlpp::schema_t
+  {
+    return {name};
+  }
+
+  void start_transaction()
+  {
+    _mock_data._last_isolation_level = _mock_data._default_isolation_level;
+  }
+
+  void start_transaction(sqlpp::isolation_level level)
+  {
+    _mock_data._last_isolation_level = level;
+  }
+
+  void set_default_isolation_level(sqlpp::isolation_level level)
+  {
+    _mock_data._default_isolation_level = level;
+  }
+
+  sqlpp::isolation_level get_default_isolation_level()
+  {
+    return _mock_data._default_isolation_level;
+  }
+
+  void rollback_transaction(bool)
+  {
+  }
+
+  void commit_transaction()
+  {
+  }
+
+  void report_rollback_failure(std::string)
+  {
+  }
+
+  // temporary data store to verify the expected results were produced
+  InternalMockData _mock_data;
 };
 
 using MockDb = MockDbT<false>;
