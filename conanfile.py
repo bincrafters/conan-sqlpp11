@@ -32,7 +32,7 @@ class sqlpp11Conan(ConanFile):
         tools.replace_in_file(char_sequence, "Input", "s")
         tools.replace_in_file(char_sequence, "(&s)[N]", "*s")
 
-    def configure_cmake(self):
+    def _configure_cmake(self):
         cmake = CMake(self)
         cmake.definitions["ENABLE_TESTS"] = False
         cmake.definitions['HinnantDate_ROOT_DIR'] = self.deps_cpp_info['date'].include_paths[0]
@@ -40,12 +40,12 @@ class sqlpp11Conan(ConanFile):
         return cmake
 
     def build(self):
-        cmake = self.configure_cmake()
+        cmake = self._configure_cmake()
         cmake.build()
 
     def package(self):
         self.copy(pattern="LICENSE", dst="licenses", src=self._source_subfolder)
-        cmake = self.configure_cmake()
+        cmake = self._configure_cmake()
         cmake.install()
 
     def package_id(self):
