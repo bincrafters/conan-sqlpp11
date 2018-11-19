@@ -27,6 +27,11 @@ class sqlpp11Conan(ConanFile):
         extracted_dir = self.name + "-" + self.version
         os.rename(extracted_dir, self._source_subfolder)
 
+        # https://github.com/rbock/sqlpp11/issues/248
+        char_sequence = os.path.join(self._source_subfolder, "include", "sqlpp11", "char_sequence.h")
+        tools.replace_in_file(char_sequence, "Input", "s")
+        tools.replace_in_file(char_sequence, "(&s)[N]", "*s")
+
     def configure_cmake(self):
         cmake = CMake(self)
         cmake.definitions["ENABLE_TESTS"] = False
