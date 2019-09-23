@@ -1,5 +1,5 @@
 [![Download](https://api.bintray.com/packages/bincrafters/public-conan/sqlpp11%3Abincrafters/images/download.svg) ](https://bintray.com/bincrafters/public-conan/sqlpp11%3Abincrafters/_latestVersion)
-[![Build Status](https://travis-ci.org/bincrafters/conan-sqlpp11.svg?branch=testing%2F0.54)](https://travis-ci.org/bincrafters/conan-sqlpp11)
+[![Build Status](https://travis-ci.com/bincrafters/conan-sqlpp11.svg?branch=testing%2F0.54)](https://travis-ci.com/bincrafters/conan-sqlpp11)
 [![Build status](https://ci.appveyor.com/api/projects/status/github/bincrafters/conan-sqlpp11?branch=testing%2F0.54&svg=true)](https://ci.appveyor.com/project/bincrafters/conan-sqlpp11)
 
 [Conan.io](https://conan.io) package recipe for [*sqlpp11*](https://github.com/rbock/sqlpp11).
