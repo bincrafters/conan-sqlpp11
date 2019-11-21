@@ -9,7 +9,6 @@ class sqlpp11Conan(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
     url = "https://github.com/bincrafters/conan-sqlpp11"
     homepage = "https://github.com/rbock/sqlpp11"
-    author = "Bincrafters <bincrafters@gmail.com>"
     license = "BSD 2-Clause"
     exports = ["LICENSE.md"]
     exports_sources = ["CMakeLists.txt"]
